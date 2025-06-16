@@ -15,36 +15,33 @@ class UpdateCarForm extends Form {
       mbw: 0,
       pph: 0,
       ppd: 0,
-      categoryId: null,
+      categoryId: "",
     },
     errors: {},
-    categories: [
-      { id: 1, title: "Economy" },
-      { id: 2, title: "Standard" },
-      { id: 3, title: "Luxury" },
-      { id: 4, title: "SUV" },
-    ],
+    categories: [],
     isLoading: false,
     isFetching: true,
+    isUploading: false, // Added for image upload state
   };
 
   schema = {
-    model: Joi.string().label("Model"),
-    seats: Joi.number().min(1).max(40).label("Seats"),
-    color: Joi.string().label("Color"),
-    image: Joi.string().label("Image URL"),
-    mbw: Joi.number().min(0.01).max(1000).label("Mileage"),
-    pph: Joi.number().label("Price per hour"),
-    ppd: Joi.number().label("Price per day"),
-    categoryId: Joi.number().allow(null).label("Category"),
-    id: Joi.allow(""),
+    id: Joi.number(),
+    model: Joi.string().required().label("Model"),
+    seats: Joi.number().min(1).max(40).required().label("Seats"),
+    color: Joi.string().required().label("Color"),
+    image: Joi.string().required().label("Image"), // Removed .uri() validation
+    mbw: Joi.number().min(0).required().label("Mileage"),
+    pph: Joi.number().min(0).required().label("Price per hour"),
+    ppd: Joi.number().min(0).required().label("Price per day"),
+    categoryId: Joi.number().required().label("Category"),
   };
 
   async componentDidMount() {
     const { id } = this.props.params;
     try {
-      const { data } = await apiClient.get(`/cars/${id}`);
-      this.setState({ data, isFetching: false });
+      const { data: carData } = await apiClient.get(`/cars/${id}`);
+      const { data: categories } = await apiClient.get("/categories");
+      this.setState({ data: carData, categories, isFetching: false });
     } catch (error) {
       if (error.response && error.response.status === 404) {
         this.props.navigate("/not-found");
@@ -53,24 +50,90 @@ class UpdateCarForm extends Form {
     }
   }
 
+  // Added image upload handler
+  handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+    this.setState({ isUploading: true });
+
+    try {
+      const { data: response } = await apiClient.post(
+        "/files/upload",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
+      const data = { ...this.state.data, image: response.url };
+      const errors = { ...this.state.errors };
+      delete errors.image; // Clear any previous image errors
+
+      this.setState({ data, errors });
+    } catch (error) {
+      const errors = { ...this.state.errors };
+      errors.image = "Image upload failed. Please try again.";
+      this.setState({ errors });
+    } finally {
+      this.setState({ isUploading: false });
+    }
+  };
+
   doSubmit = async () => {
     this.setState({ isLoading: true });
     try {
       const { id } = this.props.params;
-      const response = await apiClient.put(`/Cars/${id}`, this.state.data);
-      console.log(response);
-      // Navigate back to cars page after successful update
-      this.props.navigate("/cars", { replace: true }); // Changed this line
+      await apiClient.put(`/cars/${id}`, this.state.data);
+      this.props.navigate("/cars", { replace: true });
     } catch (error) {
       if (error.response && error.response.status === 400) {
         const errors = { ...this.state.errors };
-        errors.form = error.response.data;
+        errors.form = "There was an error updating the form.";
         this.setState({ errors });
       }
     } finally {
       this.setState({ isLoading: false });
     }
   };
+
+  // Added method to render image upload field
+  renderImageUpload() {
+    const { data, errors, isUploading } = this.state;
+
+    return (
+      <div className="mb-3">
+        <label className="form-label">Car Image</label>
+        <div className="d-flex align-items-center">
+          {data.image && (
+            <img
+              src={`http://localhost:5117${data.image}`}
+              alt="Preview"
+              className="img-thumbnail me-3"
+              style={{ width: "100px", height: "100px" }}
+            />
+          )}
+          <div>
+            <input
+              type="file"
+              className="form-control"
+              onChange={this.handleImageUpload}
+              disabled={isUploading}
+              accept="image/*"
+            />
+            {errors.image && (
+              <div className="alert alert-danger mt-2">{errors.image}</div>
+            )}
+            {isUploading && (
+              <div className="mt-2 text-primary">Uploading image...</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   render() {
     if (this.state.isFetching) {
@@ -105,17 +168,14 @@ class UpdateCarForm extends Form {
               )}
             </div>
             <div>
-              {this.renderInput(
-                "image",
-                "Image URL",
-                "text",
-                "Enter image URL"
-              )}
+              {/* Replaced image input with upload component */}
+              {this.renderImageUpload()}
+
               {this.renderInput(
                 "mbw",
-                "Mileage by Week (km)",
+                "Max Baggage Weight (kg)",
                 "number",
-                "Enter mileage"
+                "Enter max baggage weight"
               )}
               {this.renderInput(
                 "pph",
@@ -135,11 +195,17 @@ class UpdateCarForm extends Form {
           <div className="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
             <button
               type="button"
-              className="btn btn-outline-secondary me-md-2"
+              className="btn btn-outline-danger me-md-2"
               onClick={() => this.props.navigate("/cars")}>
               Cancel
             </button>
-            <button disabled={this.state.isLoading} className="btn btn-primary">
+            <button
+              disabled={
+                this.validate() ||
+                this.state.isLoading ||
+                this.state.isUploading
+              }
+              className="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 ">
               {this.state.isLoading ?
                 <>
                   <span
@@ -152,54 +218,6 @@ class UpdateCarForm extends Form {
             </button>
           </div>
         </form>
-      </div>
-    );
-  }
-
-  renderInput(name, label, type = "text", placeholder = "") {
-    return (
-      <div className="form-group">
-        <label htmlFor={name} className="form-label">
-          {label}
-        </label>
-        <input
-          name={name}
-          value={this.state.data[name] || ""}
-          onChange={this.handleChange}
-          type={type}
-          className="form-control"
-          id={name}
-          placeholder={placeholder}
-        />
-        {this.state.errors[name] && (
-          <div className="alert alert-danger">{this.state.errors[name]}</div>
-        )}
-      </div>
-    );
-  }
-
-  renderSelect(name, label, options, placeholder = "") {
-    return (
-      <div className="form-group">
-        <label htmlFor={name} className="form-label">
-          {label}
-        </label>
-        <select
-          name={name}
-          id={name}
-          value={this.state.data[name] || ""}
-          onChange={this.handleChange}
-          className="form-control">
-          <option value="">{placeholder}</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.title}
-            </option>
-          ))}
-        </select>
-        {this.state.errors[name] && (
-          <div className="alert alert-danger">{this.state.errors[name]}</div>
-        )}
       </div>
     );
   }

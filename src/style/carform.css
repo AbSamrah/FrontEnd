@@ -2,67 +2,42 @@
   max-width: 800px;
   margin: 2rem auto;
   padding: 2rem;
-  background-color: #f8f9fa;
-  border-radius: 10px;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 .car-form-header {
-  color: #2c3e50;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid #3498db;
-}
-
-.car-form-btn {
-  background-color: #3498db;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  transition: all 0.3s;
-}
-
-.car-form-btn:hover {
-  background-color: #2980b9;
-  transform: translateY(-2px);
+  margin-bottom: 2rem;
 }
 
 .car-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr; /* Default to 1 column on small screens */
   gap: 1.5rem;
 }
 
-@media (max-width: 768px) {
+/* This is the key part: it creates the 2-column layout on larger screens */
+@media (min-width: 768px) {
   .car-form-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 .form-group {
-  margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.form-label {
-  font-weight: 600;
-  color: #2c3e50;
+.form-group .form-label {
   margin-bottom: 0.5rem;
+  font-weight: 500;
 }
 
-.form-control {
-  border-radius: 5px;
-  padding: 0.75rem;
-  border: 1px solid #ced4da;
-  transition: border-color 0.3s;
-}
-
-.form-control:focus {
-  border-color: #3498db;
-  box-shadow: 0 0 0 0.25rem rgba(52, 152, 219, 0.25);
-}
-
-.alert-danger {
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  border-radius: 5px;
+.car-form-btn {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
 }

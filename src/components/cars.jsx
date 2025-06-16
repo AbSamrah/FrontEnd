@@ -1,225 +1,188 @@
-import React, { Component } from "react";
+import React, { useState, useEffect } from "react";
 import apiClient from "../helper/apiclient";
 import { Link } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import "../style/cars.css";
 
-class Cars extends Component {
-  state = {
-    cars: [],
-    error: null,
-    loading: false,
-    deletingId: null,
-  };
+const Cars = () => {
+  const [cars, setCars] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [userRole, setUserRole] = useState(null);
 
-  handleDelete = async (id) => {
+  useEffect(() => {
     try {
-      this.setState({ deletingId: id, error: null });
-
-      if (!window.confirm("Are you sure you want to delete this car?")) {
-        this.setState({ deletingId: null });
-        return;
+      const jwt = localStorage.getItem("token");
+      if (jwt) {
+        const user = jwtDecode(jwt);
+        setUserRole(
+          user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"]
+        );
       }
+    } catch (ex) {
+      console.error("Failed to decode JWT", ex);
+    }
 
+    const fetchCars = async () => {
+      try {
+        const { data: carsData } = await apiClient.get("/cars");
+        setCars(carsData);
+      } catch (error) {
+        console.error("Failed to fetch cars:", error);
+        setError("Failed to load cars. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCars();
+  }, []);
+
+  const handleDelete = async (id) => {
+    // A more modern confirmation dialog
+    if (
+      !window.confirm("Are you sure you want to permanently delete this car?")
+    ) {
+      return;
+    }
+
+    const originalCars = [...cars];
+    setCars(cars.filter((c) => c.id !== id));
+
+    try {
       await apiClient.delete(`/cars/${id}`);
-      await this.fetchCars();
     } catch (error) {
       console.error("Delete error:", error);
-      this.setState({
-        error:
-          error.response?.data?.message ||
-          "Failed to delete car. Please try again.",
-      });
-    } finally {
-      this.setState({ deletingId: null });
+      setError("Failed to delete car. Please refresh and try again.");
+      setCars(originalCars); // Revert on error
     }
   };
 
-  fetchCars = async () => {
-    try {
-      this.setState({ loading: true });
-      const { data: cars } = await apiClient.get("/cars");
-      this.setState({ cars });
-    } catch (error) {
-      console.error("Failed to fetch cars:", error);
-      this.setState({
-        error: "Failed to load cars. Please refresh the page.",
-      });
-    } finally {
-      this.setState({ loading: false });
-    }
-  };
-
-  render() {
-    const { cars, error, loading, deletingId, role } = this.state;
-
-    return (
-      <div className="container py-4">
-        {/* Header with Add Car button */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <h1 className="m-0 text-primary">Cars</h1>
-          {role == "Admin" && (
-            <Link to="/cars/add" className="btn btn-primary px-4 py-2">
-              <i className="bi bi-plus-circle me-2"></i>
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-28">
+        {/* Page Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Our Vehicle Fleet
+            </h1>
+            <p className="mt-1 text-md text-gray-500">
+              Choose from our wide selection of premium vehicles.
+            </p>
+          </div>
+          {userRole === "Admin" && (
+            <Link
+              to="/cars/add"
+              className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+              <i className="fas fa-plus mr-2"></i>
               Add New Car
             </Link>
           )}
         </div>
 
-        {/* Error message */}
+        {/* Loading and Error States */}
+        {loading && (
+          <div className="text-center py-16">
+            <div className="spinner"></div>
+            <p className="mt-4 text-gray-600">Loading our fleet...</p>
+          </div>
+        )}
         {error && (
-          <div className="alert alert-danger alert-dismissible fade show">
-            {error}
-            <button
-              type="button"
-              className="btn-close"
-              onClick={() => this.setState({ error: null })}></button>
+          <div
+            className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md"
+            role="alert">
+            <p>{error}</p>
           </div>
         )}
 
-        {/* Loading spinner */}
-        {loading && !cars.length && (
-          <div className="text-center my-5">
-            <div className="spinner-border text-primary" role="status">
-              <span className="visually-hidden">Loading...</span>
-            </div>
-            <p className="mt-2">Loading car fleet...</p>
-          </div>
-        )}
-
-        {/* Cars table */}
-        {cars.length > 0 ?
-          <div className="card shadow-sm">
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table table-hover m-0">
-                  <thead className="table-light">
-                    <tr>
-                      <th className="py-3">Model</th>
-                      <th className="py-3">Seats</th>
-                      <th className="py-3">Color</th>
-                      <th className="py-3">Mileage</th>
-                      <th className="py-3">Price/Hour</th>
-                      <th className="py-3">Price/Day</th>
-                      <th className="py-3 text-end"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {cars.map((car) => (
-                      <tr key={car.id}>
-                        <td className="align-middle">
-                          <strong>{car.model}</strong>
-                        </td>
-                        <td className="align-middle">{car.seats}</td>
-                        <td className="align-middle">
-                          <span
-                            className="badge rounded-pill"
-                            style={{
-                              backgroundColor: car.color.toLowerCase(),
-                              color: getContrastColor(car.color),
-                            }}>
-                            {car.color}
-                          </span>
-                        </td>
-                        <td className="align-middle">{car.mbw} km</td>
-                        <td className="align-middle">€{car.pph.toFixed(2)}</td>
-                        <td className="align-middle">€{car.ppd.toFixed(2)}</td>
-                        <td className="align-middle text-end">
-                          {role == "Admin" && (
-                            <React.Fragment>
-                              <Link
-                                to={`/cars/update/${car.id}`}
-                                className="btn btn-sm btn-outline-primary me-2">
-                                <i className="bi bi-pencil-square me-1"></i>
-                                Edit
-                              </Link>
-                              <button
-                                onClick={() => this.handleDelete(car.id)}
-                                className="btn btn-sm btn-outline-danger"
-                                disabled={deletingId === car.id}>
-                                {deletingId === car.id ?
-                                  <>
-                                    <span className="spinner-border spinner-border-sm me-1"></span>
-                                    Deleting...
-                                  </>
-                                : <>
-                                    <i className="bi bi-trash me-1"></i>
-                                    Delete
-                                  </>
-                                }
-                              </button>
-                            </React.Fragment>
-                          )}
-                          {role == "Customer" && (
-                            <React.Fragment>
-                              <Link
-                                to={`/cars/rent/${car.id}`}
-                                className="btn btn-sm btn-outline-success me-2">
-                                <i className="bi bi-pencil-square me-1"></i>
-                                Rent
-                              </Link>
-                            </React.Fragment>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        : !loading && (
-            <div className="text-center py-5">
-              <div className="card shadow-sm">
-                <div className="card-body py-5">
-                  <i
-                    className="bi bi-car-front text-muted"
-                    style={{ fontSize: "3rem" }}></i>
-                  <h4 className="mt-3">No cars available</h4>
-                  <p className="text-muted">
-                    Add your first car to get started
-                  </p>
-                  {role == "Admin" && (
-                    <Link to="/cars/addCar" className="btn btn-primary mt-2">
-                      Add Car
-                    </Link>
-                  )}
+        {/* Car Grid */}
+        {!loading && !error && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {cars.map((car) => (
+              <div
+                key={car.id}
+                className="car-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                <div className="relative">
+                  <img
+                    src={
+                      `http://localhost:5117${car.image}` ||
+                      "https://placehold.co/600x400/e2e8f0/4a5568?text=No+Image"
+                    }
+                    className="w-full h-56 object-cover"
+                    alt={car.model}
+                  />
+                </div>
+                <div className="p-6 flex-grow flex flex-col">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {car.model}
+                  </h2>
+                  <div className="flex-grow flex items-center text-sm text-gray-500 mt-2 space-x-4">
+                    <span>
+                      <i className="fas fa-user-friends mr-1"></i> {car.seats}{" "}
+                      Seats
+                    </span>
+                    <span>
+                      <i className="fas fa-palette mr-1"></i> {car.color}
+                    </span>
+                    <span>
+                      <i className="fas fa-briefcase mr-1"></i> {car.mbw} kg
+                    </span>
+                  </div>
+                  <div className="mt-6 flex justify-between items-center">
+                    <p className="text-2xl font-extrabold text-gray-900">
+                      €{car.ppd.toFixed(2)}
+                      <span className="text-sm font-medium text-gray-500">
+                        /day
+                      </span>
+                    </p>
+                    {userRole === "Admin" ?
+                      <div className="flex space-x-2">
+                        <Link
+                          to={`/cars/update/${car.id}`}
+                          className="text-blue-600 hover:text-blue-800 p-2 rounded-full transition-colors">
+                          <i className="fas fa-pencil-alt"></i>
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(car.id)}
+                          className="text-red-600 hover:text-red-800 p-2 rounded-full transition-colors">
+                          <i className="fas fa-trash-alt"></i>
+                        </button>
+                      </div>
+                    : <Link
+                        to={`/cars/rent/${car.id}`}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        Rent Now
+                      </Link>
+                    }
+                  </div>
                 </div>
               </div>
-            </div>
-          )
-        }
+            ))}
+          </div>
+        )}
+
+        {!loading && !error && cars.length === 0 && (
+          <div className="text-center py-16">
+            <i className="fas fa-car-side text-6xl text-gray-300"></i>
+            <h3 className="mt-4 text-xl font-semibold text-gray-800">
+              No Cars Found
+            </h3>
+            <p className="mt-2 text-gray-500">
+              There are currently no vehicles available in our fleet.
+            </p>
+            {userRole === "Admin" && (
+              <Link
+                to="/cars/add"
+                className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                Add a Car
+              </Link>
+            )}
+          </div>
+        )}
       </div>
-    );
-  }
-
-  async componentDidMount() {
-    this.fetchCars();
-    try {
-      console.log("cdm");
-      const jwt = localStorage.getItem("token");
-      const user = jwtDecode(jwt);
-      const userId =
-        user[
-          "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
-        ];
-      const role =
-        user["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
-      this.setState({ role });
-      console.log(role);
-    } catch (ex) {
-      console.log("ex");
-    }
-  }
-}
-
-// Helper function to determine text color based on background color
-function getContrastColor(hexColor) {
-  // Simple contrast check - for production use a proper color contrast algorithm
-  if (!hexColor) return "#000";
-  const color = hexColor.toLowerCase();
-  return color === "white" || color === "#ffffff" || color === "yellow" ?
-      "#000"
-    : "#fff";
-}
+    </div>
+  );
+};
 
 export default Cars;

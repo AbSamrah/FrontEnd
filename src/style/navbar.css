@@ -1,0 +1,33 @@
+/* Custom styles for NavLink */
+.nav-link {
+  display: block;
+  padding: 0.5rem;
+  color: #4b5563; /* text-gray-600 */
+  border-bottom: 2px solid transparent;
+  transition:
+    color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
+}
+
+/* Hover state for desktop */
+@media (min-width: 768px) {
+  .nav-link:hover {
+    color: #2563eb; /* text-blue-600 */
+    border-bottom-color: #3b82f6; /* border-blue-500 */
+  }
+}
+
+/* Active link style */
+.nav-link.active {
+  color: #2563eb; /* text-blue-600 */
+  font-weight: 600;
+  border-bottom-color: #2563eb;
+}
+
+/* Adjust padding on larger screens */
+@media (min-width: 768px) {
+  .nav-link {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}

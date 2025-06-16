@@ -1,62 +1,118 @@
-import React, { Component } from "react";
-import { Link, NavLink } from "react-router-dom";
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
+import "../style/navbar.css"; // Your custom CSS for the navbar
 
 const NavBar = ({ user }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // This function closes the mobile menu when a link is clicked
+  const closeMenu = () => setIsOpen(false);
+
   return (
-    <header className="p-3 text-bg-primary">
-      <div className="container">
-        <div className="d-flex flex-wrap align-items-center justify-content-center justify-content-lg-start">
-          <Link
-            to="/"
-            className="d-flex align-items-center mb-2 mb-lg-0 text-white text-decoration-none h3 p-3">
-            TourAgency
-          </Link>
+    <nav className="bg-white shadow-md fixed w-full z-20 top-0 start-0">
+      <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
+        {/* Brand Logo */}
+        <NavLink
+          to="/"
+          className="flex items-center space-x-3 rtl:space-x-reverse">
+          <i className="fas fa-plane-departure text-blue-600 text-2xl"></i>
+          <span className="self-center text-2xl font-semibold whitespace-nowrap text-blue-600">
+            Tourista
+          </span>
+        </NavLink>
 
-          <ul className="nav col-12 col-lg-auto me-lg-auto mb-2 justify-content-center mb-md-0">
-            {/* <li>
-                <Link to="/users" className="nav-link px-2 text-white">
-                  Users
-                </Link>
-              </li> */}
-            <li>
-              <Link to="/cars" className="nav-link px-2 text-white">
-                Cars
-              </Link>
-            </li>
-            <li>
-              <Link to="#" className="nav-link px-2 text-white">
-                Trips
-              </Link>
-            </li>
-          </ul>
-
-          {!user && (
-            <div className="text-end">
-              <NavLink to="/login" className="btn btn-outline-light me-2">
+        {/* Login/Signup/Logout & Mobile Toggle */}
+        <div className="flex items-center md:order-2 space-x-2 rtl:space-x-reverse">
+          {!user ?
+            <>
+              <NavLink
+                to="/login"
+                className="text-gray-800 bg-gray-100 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2 text-center hidden sm:block">
                 Login
               </NavLink>
-              <NavLink to="/signup" className="btn btn-primary">
-                Sign-up
+              <NavLink
+                to="/signup"
+                className="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
+                Sign Up
               </NavLink>
-            </div>
-          )}
-          {user && (
-            <div className="text-end">
-              <NavLink to="/profile" className="nav-link nav-item">
+            </>
+          : <div className="flex items-center space-x-3">
+              <span className="text-gray-700 font-medium self-center hidden sm:inline">
+                Welcome,{" "}
                 {
                   user[
                     "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
                   ]
                 }
-              </NavLink>
-              <NavLink to="/logout" className="nav-link nav-item">
+              </span>
+              <NavLink
+                to="/logout"
+                className="text-white bg-red-500 hover:bg-red-600 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2 text-center">
                 Logout
               </NavLink>
             </div>
-          )}
+          }
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            type="button"
+            className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            aria-controls="navbar-menu"
+            aria-expanded={isOpen}>
+            <span className="sr-only">Open main menu</span>
+            <i className={`fas ${isOpen ? "fa-times" : "fa-bars"} text-xl`}></i>
+          </button>
+        </div>
+
+        {/* Main Navigation Links */}
+        <div
+          className={`items-center justify-between w-full md:flex md:w-auto md:order-1 ${isOpen ? "block" : "hidden"}`}
+          id="navbar-menu">
+          <ul className="flex flex-col p-4 md:p-0 mt-4 font-medium border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-white">
+            <li>
+              <NavLink
+                to="/"
+                className={({ isActive }) =>
+                  isActive ? "nav-link active" : "nav-link"
+                }
+                onClick={closeMenu}>
+                Home
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/cars"
+                className={({ isActive }) =>
+                  isActive ? "nav-link active" : "nav-link"
+                }
+                onClick={closeMenu}>
+                Cars
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/trips"
+                className={({ isActive }) =>
+                  isActive ? "nav-link active" : "nav-link"
+                }
+                onClick={closeMenu}>
+                Trips
+              </NavLink>
+            </li>
+            <li>
+              <NavLink
+                to="/about"
+                className={({ isActive }) =>
+                  isActive ? "nav-link active" : "nav-link"
+                }
+                onClick={closeMenu}>
+                About
+              </NavLink>
+            </li>
+          </ul>
         </div>
       </div>
-    </header>
+    </nav>
   );
 };
 

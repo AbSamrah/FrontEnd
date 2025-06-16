@@ -13,7 +13,10 @@ class SignUp extends Form {
   // email = React.createRef();
   doSubmit = async () => {
     try {
-      const response = await apiClient.post("/Auth/signUp", this.state.data);
+      const response = await apiClient.post(
+        "/authentication/register",
+        this.state.data
+      );
       console.log("Signup successful:", response.data);
       this.setState({ redirect: true });
     } catch (error) {
