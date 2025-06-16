@@ -6,6 +6,7 @@ import "../style/cars.css";
 
 const Cars = () => {
   const [cars, setCars] = useState([]);
+  const [categories, setCategories] = useState([]); // State for categories
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
@@ -23,23 +24,33 @@ const Cars = () => {
       console.error("Failed to decode JWT", ex);
     }
 
-    const fetchCars = async () => {
+    // Fetch both cars and categories
+    const fetchData = async () => {
       try {
-        const { data: carsData } = await apiClient.get("/cars");
-        setCars(carsData);
+        const [carsResponse, categoriesResponse] = await Promise.all([
+          apiClient.get("/cars"),
+          apiClient.get("/categories"),
+        ]);
+        setCars(carsResponse.data);
+        setCategories(categoriesResponse.data);
       } catch (error) {
-        console.error("Failed to fetch cars:", error);
-        setError("Failed to load cars. Please try again later.");
+        console.error("Failed to fetch data:", error);
+        setError("Failed to load data. Please try again later.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchCars();
+    fetchData();
   }, []);
 
+  // Helper function to get category name
+  const getCategoryName = (categoryId) => {
+    const category = categories.find((cat) => cat.id === categoryId);
+    return category ? category.title : "N/A";
+  };
+
   const handleDelete = async (id) => {
-    // A more modern confirmation dialog
     if (
       !window.confirm("Are you sure you want to permanently delete this car?")
     ) {
@@ -54,7 +65,7 @@ const Cars = () => {
     } catch (error) {
       console.error("Delete error:", error);
       setError("Failed to delete car. Please refresh and try again.");
-      setCars(originalCars); // Revert on error
+      setCars(originalCars);
     }
   };
 
@@ -74,7 +85,8 @@ const Cars = () => {
           {userRole === "Admin" && (
             <Link
               to="/cars/add"
-              className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+              className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
               <i className="fas fa-plus mr-2"></i>
               Add New Car
             </Link>
@@ -91,7 +103,8 @@ const Cars = () => {
         {error && (
           <div
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md"
-            role="alert">
+            role="alert"
+          >
             <p>{error}</p>
           </div>
         )}
@@ -102,7 +115,8 @@ const Cars = () => {
             {cars.map((car) => (
               <div
                 key={car.id}
-                className="car-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+                className="car-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col"
+              >
                 <div className="relative">
                   <img
                     src={
@@ -128,6 +142,11 @@ const Cars = () => {
                     <span>
                       <i className="fas fa-briefcase mr-1"></i> {car.mbw} kg
                     </span>
+                    {/* Added Category Display */}
+                    <span>
+                      <i className="fas fa-tag mr-1"></i>{" "}
+                      {getCategoryName(car.categoryId)}
+                    </span>
                   </div>
                   <div className="mt-6 flex justify-between items-center">
                     <p className="text-2xl font-extrabold text-gray-900">
@@ -136,25 +155,29 @@ const Cars = () => {
                         /day
                       </span>
                     </p>
-                    {userRole === "Admin" ?
+                    {userRole === "Admin" ? (
                       <div className="flex space-x-2">
                         <Link
                           to={`/cars/update/${car.id}`}
-                          className="text-blue-600 hover:text-blue-800 p-2 rounded-full transition-colors">
+                          className="text-blue-600 hover:text-blue-800 p-2 rounded-full transition-colors"
+                        >
                           <i className="fas fa-pencil-alt"></i>
                         </Link>
                         <button
                           onClick={() => handleDelete(car.id)}
-                          className="text-red-600 hover:text-red-800 p-2 rounded-full transition-colors">
+                          className="text-red-600 hover:text-red-800 p-2 rounded-full transition-colors"
+                        >
                           <i className="fas fa-trash-alt"></i>
                         </button>
                       </div>
-                    : <Link
+                    ) : (
+                      <Link
                         to={`/cars/rent/${car.id}`}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                      >
                         Rent Now
                       </Link>
-                    }
+                    )}
                   </div>
                 </div>
               </div>
@@ -174,7 +197,8 @@ const Cars = () => {
             {userRole === "Admin" && (
               <Link
                 to="/cars/add"
-                className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                className="mt-6 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              >
                 Add a Car
               </Link>
             )}
