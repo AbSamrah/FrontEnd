@@ -1,4 +1,3 @@
-//import logo from './logo.svg';
 import "./App.css";
 import NavBar from "./components/navbar";
 import Users from "./components/users";
@@ -8,17 +7,17 @@ import Home from "./components/home";
 import AddUser from "./components/adduser";
 import SignUp from "./components/signup";
 import Cars from "./components/cars";
-import CarDetails from "./components/carDetails"; // Import CarDetails
-import Trips from "./components/trips"; // Import Trips
-import TripDetails from "./components/tripDetails"; // Import TripDetails
-import Blog from "./components/blog"; // Import Blog
-import BlogPost from "./components/blogPost"; // Import BlogPost
+import Trips from "./components/trips";
+import TripDetails from "./components/tripDetails";
+import Blog from "./components/blog";
+import BlogPost from "./components/blogPost";
 import AddCar from "./components/addcar";
 import UpdateCar from "./components/updatecar";
 import { jwtDecode } from "jwt-decode";
 import { Component } from "react";
 import Logout from "./components/logout";
 import RentCarFormWrapper from "./components/rentcarform";
+import PaymentPage from "./components/payment"; // Import the new component
 
 class App extends Component {
   state = {};
@@ -26,8 +25,10 @@ class App extends Component {
   componentDidMount() {
     try {
       const jwt = localStorage.getItem("token");
-      const user = jwtDecode(jwt);
-      this.setState({ user });
+      if (jwt) {
+        const user = jwtDecode(jwt);
+        this.setState({ user });
+      }
     } catch (ex) {}
   }
   render() {
@@ -35,17 +36,18 @@ class App extends Component {
       <div className="App">
         <NavBar user={this.state.user} />
         <Routes className="content">
-          <Route path="/users" Component={Users} />
-          <Route path="/users/adduser" Component={AddUser} />
-          <Route path="/" Component={Home} />
-          <Route path="/login" Component={Login} />
-          <Route path="/signup" Component={SignUp} />
-          <Route path="/logout" Component={Logout} />
-          <Route path="/cars" Component={Cars} />
-          <Route path="/cars/:id" element={<CarDetails />} />
-          <Route path="/cars/add" Component={AddCar} />
-          <Route path="/cars/update/:id" Component={UpdateCar} />
+          <Route path="/users" element={<Users />} />
+          <Route path="/users/adduser" element={<AddUser />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/logout" element={<Logout />} />
+          <Route path="/cars" element={<Cars />} />
+          <Route path="/cars/add" element={<AddCar />} />
+          <Route path="/cars/update/:id" element={<UpdateCar />} />
           <Route path="/cars/rent/:id" element={<RentCarFormWrapper />} />
+          <Route path="/payment/:bookingId" element={<PaymentPage />} />{" "}
+          {/* Add new route */}
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/:id" element={<TripDetails />} />
           <Route path="/blog" element={<Blog />} />

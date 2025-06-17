@@ -1,264 +1,309 @@
-import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import apiClient from "../helper/apiclient";
-import { jwtDecode } from "jwt-decode";
-import Form from "./form";
 import Joi from "joi-browser";
 
-class RentCarForm extends Form {
-  state = {
-    data: {
-      CarId: 0,
-      PickupLocation: "",
-      DropoffLocation: "",
-      WithDriver: false,
-      StartDateTime: "",
-      EndDateTime: "",
-      PaymentMethod: "Credit Card",
-      NumberOfPassengers: 1,
-    },
-    errors: {},
-    car: null,
-    loading: true,
-    error: null,
-  };
+const RentCarForm = () => {
+  const { id: carId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  schema = {
-    CarId: Joi.number().required().label("Car ID"),
-    PickupLocation: Joi.string()
-      .required()
-      .min(3)
-      .max(100)
-      .label("Pickup Location"),
-    DropoffLocation: Joi.string()
-      .required()
-      .min(3)
-      .max(100)
-      .label("Dropoff Location"),
-    WithDriver: Joi.boolean(),
-    StartDateTime: Joi.date().required().min("now").label("Start Date"),
-    EndDateTime: Joi.date()
-      .required()
-      .min(Joi.ref("StartDateTime"))
-      .label("End Date"),
-    PaymentMethod: Joi.string()
-      .required()
-      .valid("Credit Card", "Debit Card", "PayPal", "Bank Transfer")
-      .label("Payment Method"),
-    NumberOfPassengers: Joi.number()
-      .required()
+  // Get dates from the previous page's state
+  const { startDate, endDate } = location.state || {};
+
+  const [car, setCar] = useState(null);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [numberOfPassengers, setNumberOfPassengers] = useState(1);
+  const [withDriver, setWithDriver] = useState(false);
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [dropoffLocation, setDropoffLocation] = useState("");
+
+  const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Joi schema for validation
+  // NOTE: Removed the unsupported `.messages()` function. Joi's default messages will be used.
+  const schema = {
+    numberOfPassengers: Joi.number()
       .min(1)
+      .max(car ? car.seats : 1)
+      .required()
       .label("Number of Passengers"),
+    pickupLocation: Joi.string()
+      .min(3)
+      .max(100)
+      .required()
+      .label("Pickup Location"),
+    dropoffLocation: Joi.string()
+      .min(3)
+      .max(100)
+      .required()
+      .label("Dropoff Location"),
   };
 
-  async componentDidMount() {
-    const { id: carId } = this.props.params;
+  // Effect to fetch car data and calculate price
+  useEffect(() => {
+    if (!startDate || !endDate) {
+      setErrors({
+        form: "Start and end dates are required. Please go back to the cars page and select dates.",
+      });
+      setLoading(false);
+      return;
+    }
+
+    const fetchCarData = async () => {
+      try {
+        const carResponse = await apiClient.get(`/cars/${carId}`);
+        const carData = carResponse.data;
+        setCar(carData);
+        setPickupLocation(carData.location || "");
+        setDropoffLocation(carData.location || "");
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const timeDiff = end.getTime() - start.getTime();
+        const days = Math.ceil(timeDiff / (1000 * 3600 * 24));
+        setTotalPrice(days > 0 ? days * carData.ppd : carData.ppd); // Ensure at least one day is charged
+      } catch (err) {
+        setErrors({ form: "Failed to load car details. Please try again." });
+        console.error("Error fetching car data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCarData();
+  }, [carId, startDate, endDate]);
+
+  const validate = () => {
+    const dataToValidate = {
+      numberOfPassengers,
+      pickupLocation,
+      dropoffLocation,
+    };
+    const options = { abortEarly: false };
+    const { error } = Joi.validate(dataToValidate, schema, options);
+
+    if (!error) return null;
+
+    const validationErrors = {};
+    for (let item of error.details) {
+      validationErrors[item.path[0]] = item.message;
+    }
+    return validationErrors;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const validationErrors = validate();
+    if (validationErrors) {
+      setErrors(validationErrors);
+      return;
+    }
+    setErrors({});
+
+    setIsSubmitting(true);
+
+    const bookingData = {
+      carId: parseInt(carId, 10),
+      pickupLocation,
+      dropoffLocation,
+      withDriver,
+      numberOfPassengers: parseInt(numberOfPassengers, 10),
+      startDateTime: new Date(startDate).toISOString(),
+      endDateTime: new Date(endDate).toISOString(),
+    };
 
     try {
-      // Fetch car details
-      const { data: car } = await apiClient.get(`/cars/${carId}`);
+      // Create the booking
+      const bookingResponse = await apiClient.post("/carbookings", bookingData);
+      const newBooking = bookingResponse.data;
 
-      // Set initial form data
-      this.setState({
-        car,
-        loading: false,
-        data: {
-          ...this.state.data,
-          CarId: car.id,
-          PickupLocation: car.location || "",
-          DropoffLocation: car.location || "",
-          NumberOfPassengers: Math.min(
-            this.state.data.NumberOfPassengers,
-            car.seats
-          ),
+      // Redirect to the new payment page with booking info
+      navigate(`/payment/${newBooking.id}`, {
+        state: {
+          totalPrice: totalPrice,
+          bookingDetails: newBooking,
         },
       });
-
-      // Update schema for passenger limit
-      this.schema.NumberOfPassengers = this.schema.NumberOfPassengers.max(
-        car.seats
-      );
     } catch (err) {
-      this.setState({
-        error: "Failed to load car details",
-        loading: false,
-      });
-      console.error("Error fetching car:", err);
-    }
-  }
-
-  doSubmit = async () => {
-    try {
-      // First create the base booking
-      const bookingResponse = await apiClient.post("/bookings", {
-        StartDateTime: this.state.data.StartDateTime,
-        EndDateTime: this.state.data.EndDateTime,
-        NumberOfPassengers: this.state.data.NumberOfPassengers,
-      });
-
-      // Then create the car booking with the returned booking ID
-      const carBookingData = {
-        ...this.state.data,
-        BookingId: bookingResponse.data.id,
-      };
-
-      await apiClient.post("/carbookings", carBookingData);
-
-      // Redirect to success page or bookings list
-      this.props.navigate("/bookings");
-    } catch (err) {
-      console.error("Booking error:", err);
-      this.setState({
-        error:
-          err.response?.data?.message ||
-          "Failed to create booking. Please try again.",
-      });
+      const errorMessage =
+        err.response?.data?.message ||
+        "An unexpected error occurred during booking.";
+      setErrors({ form: errorMessage });
+      console.error("Booking failed:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  renderCarDetail(label, value) {
+  // Render loading state
+  if (loading) {
     return (
-      <div className="mb-3">
-        <label className="form-label">{label}</label>
-        <input
-          type="text"
-          className="form-control bg-light"
-          value={value}
-          readOnly
-          style={{ cursor: "default" }}
-        />
+      <div className="text-center py-40">
+        <div className="spinner"></div>
       </div>
     );
   }
 
-  render() {
-    const { car, loading, error } = this.state;
-
-    if (loading) {
-      return (
-        <div className="text-center my-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-2">Loading car details...</p>
-        </div>
-      );
-    }
-
-    if (!car) {
-      return (
-        <div className="alert alert-danger">{error || "Car not found"}</div>
-      );
-    }
-
-    const paymentOptions = [
-      { id: "Credit Card", title: "Credit Card" },
-      { id: "Debit Card", title: "Debit Card" },
-      { id: "PayPal", title: "PayPal" },
-      { id: "Bank Transfer", title: "Bank Transfer" },
-    ];
-
+  // Render error state if essential data is missing
+  if (errors.form) {
     return (
-      <div className="container py-4">
-        <div className="row justify-content-center">
-          <div className="col-lg-8">
-            <div className="card shadow-sm">
-              <div className="card-header bg-primary text-white">
-                <h2 className="mb-0">Rent {car.model}</h2>
-              </div>
-              <div className="card-body">
-                {error && (
-                  <div className="alert alert-danger alert-dismissible fade show mb-4">
-                    {error}
-                    <button
-                      type="button"
-                      className="btn-close"
-                      onClick={() => this.setState({ error: null })}></button>
-                  </div>
-                )}
-
-                <form onSubmit={this.handleSubmit}>
-                  <div className="row mb-4">
-                    <div className="col-md-6">
-                      <h4>Car Details</h4>
-                      {this.renderCarDetail("Model", car.model)}
-                      {this.renderCarDetail("Seats", car.seats)}
-                      {this.renderCarDetail(
-                        "Price per Day",
-                        `€${car.ppd.toFixed(2)}`
-                      )}
-                      {this.renderCarDetail("Color", car.color)}
-                      {this.renderCarDetail("Mileage", `${car.mbw} km`)}
-                    </div>
-                    <div className="col-md-6">
-                      <h4>Booking Details</h4>
-
-                      {this.renderInput("PickupLocation", "Pickup Location")}
-                      {this.renderInput("DropoffLocation", "Drop-off Location")}
-                      {this.renderInput(
-                        "StartDateTime",
-                        "Start Date & Time",
-                        "datetime-local"
-                      )}
-                      {this.renderInput(
-                        "EndDateTime",
-                        "End Date & Time",
-                        "datetime-local"
-                      )}
-                      {this.renderInput(
-                        "NumberOfPassengers",
-                        `Number of Passengers (max ${car.seats})`,
-                        "number",
-                        { min: 1, max: car.seats }
-                      )}
-
-                      <div className="mb-3 form-check">
-                        <input
-                          type="checkbox"
-                          className="form-check-input"
-                          name="WithDriver"
-                          checked={this.state.data.WithDriver}
-                          onChange={this.handleChange}
-                          id="withDriver"
-                        />
-                        <label
-                          className="form-check-label"
-                          htmlFor="withDriver">
-                          Rent with driver
-                        </label>
-                      </div>
-
-                      {this.renderSelect(
-                        "PaymentMethod",
-                        "Payment Method",
-                        paymentOptions,
-                        this.state.errors.PaymentMethod
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="d-grid gap-2 d-md-flex justify-content-md-end">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary me-md-2"
-                      onClick={() => this.props.navigate(-1)}>
-                      Cancel
-                    </button>
-                    {this.renderButton("Confirm Booking")}
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
+      <div className="container mx-auto py-40 px-4 text-center">
+        <div className="bg-red-100 text-red-700 p-4 rounded-md">
+          {errors.form}
         </div>
       </div>
     );
   }
-}
 
-// Wrap the class component to use hooks
-export default function RentCarFormWrapper(props) {
-  const params = useParams();
-  const navigate = useNavigate();
-  return <RentCarForm {...props} params={params} navigate={navigate} />;
-}
+  return (
+    <div className="bg-gray-50 min-h-screen py-12 pt-28">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-xl overflow-hidden">
+          <div className="p-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Rent: {car?.model}
+            </h1>
+            <p className="text-gray-500 mb-6">
+              Confirm your details to proceed.
+            </p>
+
+            <form onSubmit={handleSubmit} noValidate>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left side: Car Details and Summary */}
+                <div>
+                  <img
+                    src={`http://localhost:5117${car?.image}`}
+                    alt={car?.model}
+                    className="rounded-lg mb-4 w-full h-56 object-cover"
+                  />
+                  <h3 className="text-xl font-semibold text-gray-800 mb-4">
+                    Booking Summary
+                  </h3>
+                  <div className="space-y-2 text-gray-600">
+                    <div className="flex justify-between">
+                      <span>From:</span>{" "}
+                      <span className="font-medium">
+                        {new Date(startDate).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>To:</span>{" "}
+                      <span className="font-medium">
+                        {new Date(endDate).toLocaleString()}
+                      </span>
+                    </div>
+                    <hr className="my-2" />
+                    <div className="flex justify-between text-2xl font-bold text-gray-900">
+                      <span>Total Price:</span>
+                      <span>€{totalPrice.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right side: Form Inputs */}
+                <div className="space-y-6">
+                  <div>
+                    <label
+                      htmlFor="pickupLocation"
+                      className="block text-sm font-medium text-gray-700">
+                      Pickup Location
+                    </label>
+                    <input
+                      type="text"
+                      id="pickupLocation"
+                      value={pickupLocation}
+                      onChange={(e) => setPickupLocation(e.target.value)}
+                      className={`mt-1 block w-full px-3 py-2 bg-white border ${errors.pickupLocation ? "border-red-500" : "border-gray-300"} rounded-md shadow-sm`}
+                    />
+                    {errors.pickupLocation && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.pickupLocation}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="dropoffLocation"
+                      className="block text-sm font-medium text-gray-700">
+                      Dropoff Location
+                    </label>
+                    <input
+                      type="text"
+                      id="dropoffLocation"
+                      value={dropoffLocation}
+                      onChange={(e) => setDropoffLocation(e.target.value)}
+                      className={`mt-1 block w-full px-3 py-2 bg-white border ${errors.dropoffLocation ? "border-red-500" : "border-gray-300"} rounded-md shadow-sm`}
+                    />
+                    {errors.dropoffLocation && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.dropoffLocation}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="numberOfPassengers"
+                      className="block text-sm font-medium text-gray-700">
+                      Number of Passengers (Max: {car?.seats})
+                    </label>
+                    <input
+                      type="number"
+                      id="numberOfPassengers"
+                      value={numberOfPassengers}
+                      onChange={(e) => setNumberOfPassengers(e.target.value)}
+                      min="1"
+                      max={car?.seats}
+                      className={`mt-1 block w-full px-3 py-2 bg-white border ${errors.numberOfPassengers ? "border-red-500" : "border-gray-300"} rounded-md shadow-sm`}
+                    />
+                    {errors.numberOfPassengers && (
+                      <p className="text-red-500 text-xs mt-1">
+                        {errors.numberOfPassengers}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      id="withDriver"
+                      type="checkbox"
+                      checked={withDriver}
+                      onChange={(e) => setWithDriver(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                    />
+                    <label
+                      htmlFor="withDriver"
+                      className="ml-2 block text-sm text-gray-900">
+                      Include Driver
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => navigate("/cars")}
+                  className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="ml-3 inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed">
+                  {isSubmitting ? "Processing..." : "Confirm & Proceed"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const RentCarFormWrapper = () => <RentCarForm />;
+
+export default RentCarFormWrapper;
