@@ -1,96 +1,142 @@
-import Form from "./form";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import Joi from "joi-browser";
 import apiClient from "../helper/apiclient";
-import { Link, Navigate } from "react-router-dom";
+import "../style/auth-forms.css"; // Shared styles for auth pages
 
-class Login extends Form {
-  // email = React.createRef();
-  state = {
-    data: { email: "", password: "" },
-    errors: {},
-    redirect: false,
+const Login = () => {
+  const [data, setData] = useState({ email: "", password: "" });
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+
+  const schema = {
+    email: Joi.string()
+      .email({ tlds: { allow: false } })
+      .required()
+      .label("Email"),
+    password: Joi.string().required().label("Password"),
   };
 
-  doSubmit = async () => {
+  const validate = () => {
+    const options = { abortEarly: false };
+    const { error } = Joi.validate(data, schema, options);
+    if (!error) return null;
+
+    const validationErrors = {};
+    for (let item of error.details) {
+      validationErrors[item.path[0]] = item.message;
+    }
+    return validationErrors;
+  };
+
+  const handleChange = ({ currentTarget: input }) => {
+    const newData = { ...data };
+    newData[input.name] = input.value;
+    setData(newData);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const validationErrors = validate();
+    setErrors(validationErrors || {});
+    if (validationErrors) return;
+
+    setIsSubmitting(true);
+    setErrors({}); // Clear previous errors
+
     try {
-      const response = await apiClient.post(
-        "/Authentication/login",
-        this.state.data
-      );
+      const response = await apiClient.post("/authentication/login", data);
       localStorage.setItem("token", response.data);
-      window.location = "/";
-      console.log("Login successful:", response.data);
-    } catch (error) {
-      console.error("Login failed:", error);
-      this.setState({
-        errors: {
-          ...this.state.errors,
-          api: error.response?.data?.message || "Login failed",
-        },
-      });
+      window.location = "/"; // Redirect and reload to update navbar
+    } catch (ex) {
+      if (ex.response && ex.response.status === 400) {
+        setErrors({ form: "Invalid email or password." });
+      } else {
+        setErrors({ form: "An unexpected error occurred." });
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  schema = {
-    email: Joi.string().required().label("Email"),
-    password: Joi.string().min(8).required().label("Password"),
-  };
+  return (
+    <div className="auth-container">
+      <div className="auth-card">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold text-gray-800">Welcome Back!</h2>
+          <p className="text-gray-500 mt-2">Please sign in to continue.</p>
+        </div>
 
-  render() {
-    const { data, errors, redirect } = this.state;
-    if (redirect) {
-      return <Navigate to="/" replace />;
-    }
-    return (
-      <div className="container d-flex min-vh-100">
-        <div className="row align-items-center justify-content-center w-100">
-          <div className="col-md-8 col-lg-6 col-xl-5">
-            <div className="card shadow-sm">
-              <div className="card-body p-4 p-sm-5">
-                <div className="text-center mb-4">
-                  <h3 className="mb-2">Welcome Back</h3>
-                  <p className="text-muted">Please login to continue</p>
-                </div>
-
-                <form onSubmit={this.handleSubmit}>
-                  {this.renderInput("email", "Email", "email")}
-
-                  {this.renderInput("password", "Password", "password")}
-
-                  <div className="d-flex justify-content-between align-items-center mb-4">
-                    <div className="form-check">
-                      <input
-                        type="checkbox"
-                        className="form-check-input"
-                        id="remember"
-                      />
-                      <label className="form-check-label" htmlFor="remember">
-                        Remember me
-                      </label>
-                    </div>
-                    <a href="#!" className="text-decoration-none">
-                      Forgot password?
-                    </a>
-                  </div>
-
-                  {this.renderButton("Login")}
-                </form>
-
-                <div className="text-center mt-4">
-                  <p className="text-muted mb-0">
-                    Don't have an account?{" "}
-                    <Link to="/signup" clLinkssName="text-decoration-none">
-                      Sign up
-                    </Link>
-                  </p>
-                </div>
-              </div>
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="space-y-6">
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                value={data.email}
+                onChange={handleChange}
+                className="auth-input"
+                placeholder="you@example.com"
+              />
+              {errors.email && <p className="auth-error">{errors.email}</p>}
+            </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                id="password"
+                value={data.password}
+                onChange={handleChange}
+                className="auth-input"
+                placeholder="••••••••"
+              />
+              {errors.password && (
+                <p className="auth-error">{errors.password}</p>
+              )}
             </div>
           </div>
-        </div>
+
+          {errors.form && (
+            <div className="p-3 bg-red-100 text-red-700 rounded-md text-center my-4">
+              {errors.form}
+            </div>
+          )}
+
+          <div className="mt-8">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="auth-button">
+              {isSubmitting ? "Signing In..." : "Sign In"}
+            </button>
+          </div>
+
+          <div className="text-center mt-6">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{" "}
+              <Link
+                to="/signup"
+                className="font-medium text-blue-600 hover:text-blue-500">
+                Sign up now
+              </Link>
+            </p>
+          </div>
+        </form>
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 export default Login;
