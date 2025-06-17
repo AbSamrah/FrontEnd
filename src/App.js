@@ -8,6 +8,11 @@ import Home from "./components/home";
 import AddUser from "./components/adduser";
 import SignUp from "./components/signup";
 import Cars from "./components/cars";
+import CarDetails from "./components/carDetails"; // Import CarDetails
+import Trips from "./components/trips"; // Import Trips
+import TripDetails from "./components/tripDetails"; // Import TripDetails
+import Blog from "./components/blog"; // Import Blog
+import BlogPost from "./components/blogPost"; // Import BlogPost
 import AddCar from "./components/addcar";
 import UpdateCar from "./components/updatecar";
 import { jwtDecode } from "jwt-decode";
@@ -37,9 +42,14 @@ class App extends Component {
           <Route path="/signup" Component={SignUp} />
           <Route path="/logout" Component={Logout} />
           <Route path="/cars" Component={Cars} />
+          <Route path="/cars/:id" element={<CarDetails />} />
           <Route path="/cars/add" Component={AddCar} />
           <Route path="/cars/update/:id" Component={UpdateCar} />
           <Route path="/cars/rent/:id" element={<RentCarFormWrapper />} />
+          <Route path="/trips" element={<Trips />} />
+          <Route path="/trips/:id" element={<TripDetails />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:id" element={<BlogPost />} />
         </Routes>
       </div>
     );

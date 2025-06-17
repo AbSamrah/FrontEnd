@@ -172,7 +172,8 @@ const Cars = () => {
                       </div>
                     ) : (
                       <Link
-                        to={`/cars/rent/${car.id}`}
+                        // to={`/cars/rent/${car.id}`}
+                        to={`/cars/${car.id}`}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
                       >
                         Rent Now
