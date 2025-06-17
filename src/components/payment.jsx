@@ -1,14 +1,24 @@
 import React, { useState, useEffect } from "react";
-import ReactDOM from "react-dom"; // Import ReactDOM
 import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { PayPalButtons } from "@paypal/react-paypal-js"; // Import the component directly
 import apiClient from "../helper/apiclient";
 
-// A new component to encapsulate PayPal's button logic
-const PayPalButtonWrapper = ({
-  bookingId,
-  onPaymentSuccess,
-  onPaymentError,
-}) => {
+const PaymentPage = () => {
+  const { bookingId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const { totalPrice } = location.state || {};
+  const [error, setError] = useState(null);
+
+  // Redirect if essential data is missing
+  useEffect(() => {
+    if (!totalPrice || !bookingId) {
+      navigate("/cars");
+    }
+  }, [bookingId, totalPrice, navigate]);
+
+  // Creates the PayPal order on your server
   const createOrder = async () => {
     try {
       const response = await apiClient.post(
@@ -19,79 +29,22 @@ const PayPalButtonWrapper = ({
       }
       throw new Error("Could not retrieve PayPal order ID from server.");
     } catch (err) {
-      onPaymentError("Failed to create PayPal order. Please try again.");
+      setError("Failed to create PayPal order. Please try again.");
       return null;
     }
   };
 
+  // Captures the payment after the user approves
   const onApprove = async (data) => {
     try {
-      // Use the endpoint from your PaymentTransactionController
-      const response = await apiClient.post(
-        `/paymenttransaction/${data.orderID}/capture`
-      );
-      onPaymentSuccess(data.orderID);
+      // Endpoint to capture the payment on your server
+      await apiClient.post(`/paymenttransaction/${data.orderID}/capture`);
+      navigate("/payment-success", { state: { orderId: data.orderID } });
     } catch (err) {
       const errorMessage =
         err.response?.data?.message ||
         "Payment capture failed. Please contact support.";
-      onPaymentError(errorMessage);
-    }
-  };
-
-  // Check if PayPal SDK is loaded
-  // Note: The paypal object might not be available on the window immediately.
-  // A robust solution might involve loading the script dynamically or using a library like @paypal/react-paypal-js
-  if (!window.paypal) {
-    return (
-      <div className="text-center text-red-500">
-        Loading PayPal script... If this persists, please refresh.
-      </div>
-    );
-  }
-
-  // Render the PayPal buttons
-  const PayPalButtons = window.paypal.Buttons.driver("react", {
-    React,
-    ReactDOM,
-  });
-  return (
-    <PayPalButtons
-      createOrder={createOrder}
-      onApprove={onApprove}
-      onError={(err) =>
-        onPaymentError("An unexpected error occurred with PayPal.")
-      }
-      onCancel={() => onPaymentError("Payment was cancelled.")}
-    />
-  );
-};
-
-const PaymentPage = () => {
-  const { bookingId } = useParams();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const { totalPrice } = location.state || {};
-
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedMethod, setSelectedMethod] = useState("paypal"); // Default to paypal
-
-  useEffect(() => {
-    if (!totalPrice || !bookingId) {
-      navigate("/cars");
-    }
-  }, [bookingId, totalPrice, navigate]);
-
-  const handlePaymentSuccess = (orderId) => {
-    navigate("/payment-success", { state: { orderId } });
-  };
-
-  const handlePaymentError = (errorMessage) => {
-    setError(errorMessage);
-    if (errorMessage === "Payment was cancelled.") {
-      navigate("/payment-cancel");
+      setError(errorMessage);
     }
   };
 
@@ -119,41 +72,19 @@ const PaymentPage = () => {
 
           <div className="mt-8">
             <h3 className="text-lg font-medium text-center text-gray-800 mb-4">
-              Choose a Payment Method
+              Pay With PayPal
             </h3>
 
-            {/* Method Selection */}
-            <div className="flex justify-center space-x-4 mb-6">
-              <button
-                onClick={() => setSelectedMethod("paypal")}
-                className={`p-4 border rounded-lg ${selectedMethod === "paypal" ? "border-blue-500 ring-2 ring-blue-500" : "border-gray-300"}`}>
-                <i className="fab fa-paypal fa-2x text-[#00457C]"></i>
-              </button>
-              <button
-                onClick={() => setSelectedMethod("stripe")}
-                className={`p-4 border rounded-lg ${selectedMethod === "stripe" ? "border-blue-500 ring-2 ring-blue-500" : "border-gray-300"}`}>
-                <i className="fab fa-stripe-s fa-2x text-[#635BFF]"></i>
-              </button>
-            </div>
-
-            {/* Payment Button Area */}
             <div className="h-20 flex items-center justify-center">
-              {selectedMethod === "paypal" && (
-                <PayPalButtonWrapper
-                  bookingId={bookingId}
-                  onPaymentSuccess={handlePaymentSuccess}
-                  onPaymentError={handlePaymentError}
-                />
-              )}
-              {selectedMethod === "stripe" && (
-                <button
-                  onClick={() =>
-                    alert("Stripe payment is not yet implemented.")
-                  }
-                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#635BFF] hover:bg-[#534dff]">
-                  Pay with Stripe
-                </button>
-              )}
+              <PayPalButtons
+                style={{ layout: "vertical" }}
+                createOrder={createOrder}
+                onApprove={onApprove}
+                onError={(err) =>
+                  setError("An unexpected error occurred with PayPal.")
+                }
+                onCancel={() => navigate("/payment-cancel")}
+              />
             </div>
           </div>
         </div>
