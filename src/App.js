@@ -17,7 +17,9 @@ import { jwtDecode } from "jwt-decode";
 import { Component } from "react";
 import Logout from "./components/logout";
 import RentCarFormWrapper from "./components/rentcarform";
-import PaymentPage from "./components/payment"; // Import the new component
+import PaymentPage from "./components/payment";
+import PaymentSuccess from "./components/PaymentSuccess"; // Import new component
+import PaymentCancel from "./components/PaymentCancel"; // Import new component
 
 class App extends Component {
   state = {};
@@ -46,8 +48,11 @@ class App extends Component {
           <Route path="/cars/add" element={<AddCar />} />
           <Route path="/cars/update/:id" element={<UpdateCar />} />
           <Route path="/cars/rent/:id" element={<RentCarFormWrapper />} />
-          <Route path="/payment/:bookingId" element={<PaymentPage />} />{" "}
-          {/* Add new route */}
+          <Route path="/payment/:bookingId" element={<PaymentPage />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />{" "}
+          {/* Add success route */}
+          <Route path="/payment-cancel" element={<PaymentCancel />} />{" "}
+          {/* Add cancel route */}
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/:id" element={<TripDetails />} />
           <Route path="/blog" element={<Blog />} />

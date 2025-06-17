@@ -2,17 +2,25 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./index.css";
-// The Bootstrap CSS import has been removed to prevent conflicts
-// import 'bootstrap/dist/css/bootstrap.min.css';
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
+import { PayPalScriptProvider } from "@paypal/react-paypal-js";
+
+// Configuration for the PayPal script
+const initialOptions = {
+  "client-id": "YOUR_PAYPAL_CLIENT_ID", // IMPORTANT: Replace with your actual Sandbox Client ID
+  currency: "USD", // You can change this to EUR or other currencies
+  intent: "capture",
+};
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
   <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
+    <PayPalScriptProvider options={initialOptions}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </PayPalScriptProvider>
   </React.StrictMode>
 );
 
