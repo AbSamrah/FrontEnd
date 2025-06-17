@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { PayPalButtons } from "@paypal/react-paypal-js"; // Import the component directly
+import { PayPalButtons } from "@paypal/react-paypal-js";
 import apiClient from "../helper/apiclient";
 
 const PaymentPage = () => {
