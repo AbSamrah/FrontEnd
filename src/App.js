@@ -16,6 +16,7 @@ import UpdateCar from "./components/updatecar";
 import { jwtDecode } from "jwt-decode";
 import { Component } from "react";
 import Logout from "./components/logout";
+<<<<<<< HEAD
 import RentCarFormWrapper from "./components/rentcarform";
 import PaymentPage from "./components/payment";
 import AddTrip from "./components/addTrip";
@@ -23,6 +24,12 @@ import UpdateTrip from "./components/updateTrip";
 import PaymentSuccess from "./components/PaymentSuccess";
 import PaymentCancel from "./components/PaymentCancel";
 import PayPalTest from "./components/PayPalTest";
+=======
+import RentCarForm from "./components/rentcarform";
+//import PaymentPage from "./components/payment";
+import PaymentSuccess from "./components/PaymentSuccess";
+import PaymentCancel from "./components/PaymentCancel";
+>>>>>>> d30bd47e288fb3ef18c7447542e9536c9e540d5a
 
 class App extends Component {
   state = {};
@@ -50,11 +57,17 @@ class App extends Component {
           <Route path="/cars" element={<Cars />} />
           <Route path="/cars/add" element={<AddCar />} />
           <Route path="/cars/update/:id" element={<UpdateCar />} />
+<<<<<<< HEAD
           <Route path="/cars/rent/:id" element={<RentCarFormWrapper />} />
           <Route path="/payment/:bookingId" element={<PaymentPage />} />
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
           <Route path="/paypal-test" element={<PayPalTest />} />
+=======
+          <Route path="/cars/rent/:id" element={<RentCarForm />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-cancel" element={<PaymentCancel />} />
+>>>>>>> d30bd47e288fb3ef18c7447542e9536c9e540d5a
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/add" element={<AddTrip />} />
           <Route path="/trips/update/:id" element={<UpdateTrip />} />
