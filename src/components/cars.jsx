@@ -78,9 +78,9 @@ const Cars = () => {
       try {
         // Non-admins search available cars, Admins see all cars
         const endpoint =
-          startDate && endDate && userRole !== "Admin" ?
-            "/cars/available"
-          : "/cars";
+          startDate && endDate && userRole !== "Admin"
+            ? "/cars/available"
+            : "/cars";
         const response = await apiClient.get(endpoint, { params });
 
         setAllCars(response.data.cars);
@@ -175,7 +175,8 @@ const Cars = () => {
   const renderCarCard = (car) => (
     <div
       key={car.id}
-      className="car-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
+      className="car-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col"
+    >
       <div className="relative">
         <img
           src={`http://localhost:5117${car.image}`}
@@ -210,29 +211,33 @@ const Cars = () => {
             €{car.ppd.toFixed(2)}
             <span className="text-sm font-medium text-gray-500">/day</span>
           </p>
-          {userRole === "Admin" ?
+          {userRole === "Admin" ? (
             <div className="flex space-x-2">
               <Link
                 to={`/cars/update/${car.id}`}
-                className="text-blue-600 hover:text-blue-800 p-2 rounded-full transition-colors">
+                className="text-blue-600 hover:text-blue-800 p-2 rounded-full transition-colors"
+              >
                 <i className="fas fa-pencil-alt"></i>
               </Link>
               <button
                 onClick={() => handleDelete(car.id)}
-                className="text-red-600 hover:text-red-800 p-2 rounded-full transition-colors">
+                className="text-red-600 hover:text-red-800 p-2 rounded-full transition-colors"
+              >
                 <i className="fas fa-trash-alt"></i>
               </button>
             </div>
-          : <Link
+          ) : (
+            <Link
               to={`/cars/rent/${car.id}`}
               state={{ startDate, endDate }}
               className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors ${!startDate || !endDate ? "opacity-50 cursor-not-allowed" : ""}`}
               onClick={(e) => {
                 if (!startDate || !endDate) e.preventDefault();
-              }}>
+              }}
+            >
               Rent Now
             </Link>
-          }
+          )}
         </div>
       </div>
     </div>
@@ -253,7 +258,8 @@ const Cars = () => {
           {userRole === "Admin" && (
             <Link
               to="/cars/add"
-              className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+              className="mt-4 sm:mt-0 inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
               <i className="fas fa-plus mr-2"></i>
               Add New Car
             </Link>
@@ -267,7 +273,8 @@ const Cars = () => {
                 <div>
                   <label
                     htmlFor="startDate"
-                    className="block text-sm font-medium text-gray-700">
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Start Date & Time
                   </label>
                   <input
@@ -282,7 +289,8 @@ const Cars = () => {
                 <div>
                   <label
                     htmlFor="endDate"
-                    className="block text-sm font-medium text-gray-700">
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     End Date & Time
                   </label>
                   <input
@@ -302,7 +310,8 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="model"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Model
                 </label>
                 <input
@@ -317,7 +326,8 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="color"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Color
                 </label>
                 <input
@@ -332,7 +342,8 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="seats"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Min. Seats
                 </label>
                 <input
@@ -347,14 +358,16 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="categoryId"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Category
                 </label>
                 <select
                   name="categoryId"
                   value={filters.categoryId}
                   onChange={handleFilterChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
                   <option value="">All Categories</option>
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
@@ -369,7 +382,8 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="minPricePerDay"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Min Price/Day
                 </label>
                 <input
@@ -384,7 +398,8 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="maxPricePerDay"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Max Price/Day
                 </label>
                 <input
@@ -399,14 +414,16 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="sortBy"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Sort By
                 </label>
                 <select
                   name="sortBy"
                   value={filters.sortBy}
                   onChange={handleFilterChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
                   <option value="ppd">Price</option>
                   <option value="model">Model</option>
                   <option value="seats">Seats</option>
@@ -415,14 +432,16 @@ const Cars = () => {
               <div>
                 <label
                   htmlFor="sortOrder"
-                  className="block text-sm font-medium text-gray-700">
+                  className="block text-sm font-medium text-gray-700"
+                >
                   Order
                 </label>
                 <select
                   name="sortOrder"
                   value={filters.sortOrder}
                   onChange={handleFilterChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md">
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
                   <option value="asc">Ascending</option>
                   <option value="desc">Descending</option>
                 </select>
@@ -432,7 +451,8 @@ const Cars = () => {
               <button
                 type="submit"
                 disabled={loading}
-                className="justify-center flex items-center px-6 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300">
+                className="justify-center flex items-center px-6 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300"
+              >
                 {loading ? "Searching..." : "Apply Filters"}
               </button>
             </div>
@@ -448,18 +468,20 @@ const Cars = () => {
         {error && (
           <div
             className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md"
-            role="alert">
+            role="alert"
+          >
             <p>{error}</p>
           </div>
         )}
 
         {!loading && !error && (
           <div>
-            {allCars.length > 0 ?
+            {allCars.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {allCars.map(renderCarCard)}
               </div>
-            : <div className="text-center py-16">
+            ) : (
+              <div className="text-center py-16">
                 <i className="fas fa-car-side text-6xl text-gray-300"></i>
                 <h3 className="mt-4 text-xl font-semibold text-gray-800">
                   No Cars Found
@@ -468,14 +490,15 @@ const Cars = () => {
                   Try adjusting your search or filter criteria.
                 </p>
               </div>
-            }
+            )}
 
             {pagination.totalPages > 1 && (
               <div className="mt-12 flex justify-center items-center">
                 <button
                   onClick={() => fetchCars(pagination.currentPage - 1)}
                   disabled={!pagination.hasPrevious || loading}
-                  className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50">
+                  className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50"
+                >
                   Previous
                 </button>
                 <span className="px-4 py-2 mx-1">
@@ -484,7 +507,8 @@ const Cars = () => {
                 <button
                   onClick={() => fetchCars(pagination.currentPage + 1)}
                   disabled={!pagination.hasNext || loading}
-                  className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50">
+                  className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50"
+                >
                   Next
                 </button>
               </div>

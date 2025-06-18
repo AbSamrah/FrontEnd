@@ -32,54 +32,6 @@ const Home = () => {
             Discover breathtaking destinations and create unforgettable
             memories.
           </p>
-
-          <div className="search-card max-w-4xl mx-auto p-6 rounded-xl">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-              <div className="text-left">
-                <label
-                  htmlFor="destination"
-                  className="block text-sm font-medium text-white"
-                >
-                  Destination
-                </label>
-                <input
-                  type="text"
-                  id="destination"
-                  placeholder="e.g., Paris, France"
-                  className="mt-1 w-full p-2 rounded-md text-gray-800"
-                />
-              </div>
-              <div className="text-left">
-                <label
-                  htmlFor="checkin"
-                  className="block text-sm font-medium text-white"
-                >
-                  Check-in
-                </label>
-                <input
-                  type="date"
-                  id="checkin"
-                  className="mt-1 w-full p-2 rounded-md text-gray-800"
-                />
-              </div>
-              <div className="text-left">
-                <label
-                  htmlFor="checkout"
-                  className="block text-sm font-medium text-white"
-                >
-                  Check-out
-                </label>
-                <input
-                  type="date"
-                  id="checkout"
-                  className="mt-1 w-full p-2 rounded-md text-gray-800"
-                />
-              </div>
-              <button className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-md w-full md:mt-6">
-                <i className="fas fa-search mr-2"></i>Search
-              </button>
-            </div>
-          </div>
         </div>
       </header>
 
