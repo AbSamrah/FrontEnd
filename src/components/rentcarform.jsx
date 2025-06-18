@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react"; // 1. Import useRef
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import apiClient from "../helper/apiclient";
 import Joi from "joi-browser";
-import PaymentGateway from "./PaymentGateway"; // Import the new component
+import PaymentGateway from "./PaymentGateway";
 
 const RentCarForm = () => {
   const { id: carId } = useParams();
@@ -22,6 +22,17 @@ const RentCarForm = () => {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+
+  // 2. Create a ref to track if the component is mounted
+  const isMounted = useRef(true);
+
+  // 3. Set up the effect to update the ref on unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const schema = {
     numberOfPassengers: Joi.number()
@@ -61,9 +72,13 @@ const RentCarForm = () => {
         const days = Math.ceil(timeDiff / (1000 * 3600 * 24));
         setTotalPrice(days > 0 ? days * carData.ppd : carData.ppd);
       } catch (err) {
-        setErrors({ form: "Failed to load car details. Please try again." });
+        if (isMounted.current) {
+          setErrors({ form: "Failed to load car details. Please try again." });
+        }
       } finally {
-        setLoading(false);
+        if (isMounted.current) {
+          setLoading(false);
+        }
       }
     };
 
@@ -97,8 +112,8 @@ const RentCarForm = () => {
     setShowPayment(true);
   };
 
-  // This function is now the callback for a successful payment.
   const handlePaymentSuccess = async (paypalDetails) => {
+    if (!isMounted.current) return;
     setIsSubmitting(true);
     const bookingData = {
       carId: parseInt(carId, 10),
@@ -115,34 +130,48 @@ const RentCarForm = () => {
 
     try {
       const bookingResponse = await apiClient.post("/carbookings", bookingData);
-      navigate("/payment-success", {
-        state: {
-          orderId: paypalDetails.id,
-          bookingId: bookingResponse.data.id,
-        },
-      });
+      if (isMounted.current) {
+        navigate("/payment-success", {
+          state: {
+            orderId: paypalDetails.id,
+            bookingId: bookingResponse.data.id,
+          },
+        });
+      }
     } catch (err) {
-      const errorMessage =
-        err.response?.data?.message ||
-        "Your payment was successful, but we failed to create the booking. Please contact support.";
-      setErrors({ form: errorMessage });
-      setShowPayment(false);
+      if (isMounted.current) {
+        const errorMessage =
+          err.response?.data?.message ||
+          "Your payment was successful, but we failed to create the booking. Please contact support.";
+        setErrors({ form: errorMessage });
+        setShowPayment(false);
+      }
     } finally {
-      setIsSubmitting(false);
+      if (isMounted.current) {
+        setIsSubmitting(false);
+      }
     }
   };
 
-  // Callback for payment errors.
+  // 4. Update the PayPal handlers to check if the component is mounted
   const handlePaymentError = (err) => {
-    setErrors({
-      form: "An error occurred with the PayPal transaction. Please try again.",
-    });
-    setShowPayment(false);
+    if (isMounted.current) {
+      setErrors({
+        form: "An error occurred with the PayPal transaction. Please try again.",
+      });
+      setShowPayment(false);
+    } else {
+      console.error("PayPal error on unmounted component:", err);
+    }
   };
 
-  // Callback for payment cancellation.
   const handlePaymentCancel = () => {
-    navigate("/payment-cancel");
+    if (isMounted.current) {
+      // You can either navigate or just hide the payment section
+      setShowPayment(false);
+      // Or navigate to a dedicated cancellation page
+      // navigate("/payment-cancel");
+    }
   };
 
   if (loading)
@@ -301,7 +330,7 @@ const RentCarForm = () => {
                       </div>
                     : <PaymentGateway
                         totalPrice={totalPrice}
-                        description={`Rental of ${car.model}`}
+                        description={`Rental of ${car?.model || "car"}`}
                         onPaymentSuccess={handlePaymentSuccess}
                         onPaymentError={handlePaymentError}
                         onPaymentCancel={handlePaymentCancel}
