@@ -1,8 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import apiClient from "../helper/apiclient";
 import "../style/home.css"; // Home page specific styles
 
 const Home = () => {
+  const [featuredTrips, setFeaturedTrips] = useState([]);
+
+  useEffect(() => {
+    const fetchFeaturedTrips = async () => {
+      try {
+        const response = await apiClient.get("/trips");
+        setFeaturedTrips(response.data);
+      } catch (error) {
+        console.error("Failed to fetch featured trips:", error);
+      }
+    };
+
+    fetchFeaturedTrips();
+  }, []);
+
   return (
     <div className="text-gray-800">
       {/* Hero Section */}
@@ -22,7 +38,8 @@ const Home = () => {
               <div className="text-left">
                 <label
                   htmlFor="destination"
-                  className="block text-sm font-medium text-white">
+                  className="block text-sm font-medium text-white"
+                >
                   Destination
                 </label>
                 <input
@@ -35,7 +52,8 @@ const Home = () => {
               <div className="text-left">
                 <label
                   htmlFor="checkin"
-                  className="block text-sm font-medium text-white">
+                  className="block text-sm font-medium text-white"
+                >
                   Check-in
                 </label>
                 <input
@@ -47,7 +65,8 @@ const Home = () => {
               <div className="text-left">
                 <label
                   htmlFor="checkout"
-                  className="block text-sm font-medium text-white">
+                  className="block text-sm font-medium text-white"
+                >
                   Check-out
                 </label>
                 <input
@@ -71,67 +90,28 @@ const Home = () => {
             Popular Destinations
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="feature-card bg-white rounded-lg shadow-lg overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?q=80&w=1974&auto=format&fit=crop"
-                alt="Santorini, Greece"
-                className="w-full h-56 object-cover"
-              />
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">
-                  Santorini, Greece
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Iconic sunsets, white-washed villages, and stunning caldera
-                  views.
-                </p>
-                <Link
-                  to="/trips/santorini"
-                  className="text-blue-600 font-semibold hover:underline">
-                  Explore <i className="fas fa-arrow-right ml-1"></i>
-                </Link>
+            {featuredTrips.map((trip) => (
+              <div
+                key={trip.id}
+                className="feature-card bg-white rounded-lg shadow-lg overflow-hidden"
+              >
+                <img
+                  src="https://placehold.co/600x400/e2e8f0/4a5568?text=Trip+Image"
+                  alt={trip.slug}
+                  className="w-full h-56 object-cover"
+                />
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold mb-2">{trip.slug}</h3>
+                  <p className="text-gray-600 mb-4">{trip.description}</p>
+                  <Link
+                    to={`/trips/${trip.id}`}
+                    className="text-blue-600 font-semibold hover:underline"
+                  >
+                    Explore <i className="fas fa-arrow-right ml-1"></i>
+                  </Link>
+                </div>
               </div>
-            </div>
-            <div className="feature-card bg-white rounded-lg shadow-lg overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1539037116277-4db20889f2d4?q=80&w=2070&auto=format&fit=crop"
-                alt="Kyoto, Japan"
-                className="w-full h-56 object-cover"
-              />
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">Kyoto, Japan</h3>
-                <p className="text-gray-600 mb-4">
-                  Ancient temples, serene gardens, and traditional geisha
-                  districts.
-                </p>
-                <Link
-                  to="/trips/kyoto"
-                  className="text-blue-600 font-semibold hover:underline">
-                  Explore <i className="fas fa-arrow-right ml-1"></i>
-                </Link>
-              </div>
-            </div>
-            <div className="feature-card bg-white rounded-lg shadow-lg overflow-hidden">
-              <img
-                src="https://images.unsplash.com/photo-1569949381669-ecf31ae8e613?q=80&w=1935&auto=format&fit=crop"
-                alt="Amalfi Coast, Italy"
-                className="w-full h-56 object-cover"
-              />
-              <div className="p-6">
-                <h3 className="text-xl font-semibold mb-2">
-                  Amalfi Coast, Italy
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  Dramatic cliffs, colorful seaside towns, and delicious
-                  cuisine.
-                </p>
-                <Link
-                  to="/trips/amalfi"
-                  className="text-blue-600 font-semibold hover:underline">
-                  Explore <i className="fas fa-arrow-right ml-1"></i>
-                </Link>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
       </main>

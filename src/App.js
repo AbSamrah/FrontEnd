@@ -17,7 +17,12 @@ import { jwtDecode } from "jwt-decode";
 import { Component } from "react";
 import Logout from "./components/logout";
 import RentCarFormWrapper from "./components/rentcarform";
-import PaymentPage from "./components/payment"; // Import the new component
+import PaymentPage from "./components/payment";
+import AddTrip from "./components/addTrip";
+import UpdateTrip from "./components/updateTrip";
+import PaymentSuccess from "./components/PaymentSuccess";
+import PaymentCancel from "./components/PaymentCancel";
+import PayPalTest from "./components/PayPalTest";
 
 class App extends Component {
   state = {};
@@ -46,9 +51,13 @@ class App extends Component {
           <Route path="/cars/add" element={<AddCar />} />
           <Route path="/cars/update/:id" element={<UpdateCar />} />
           <Route path="/cars/rent/:id" element={<RentCarFormWrapper />} />
-          <Route path="/payment/:bookingId" element={<PaymentPage />} />{" "}
-          {/* Add new route */}
+          <Route path="/payment/:bookingId" element={<PaymentPage />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-cancel" element={<PaymentCancel />} />
+          <Route path="/paypal-test" element={<PayPalTest />} />
           <Route path="/trips" element={<Trips />} />
+          <Route path="/trips/add" element={<AddTrip />} />
+          <Route path="/trips/update/:id" element={<UpdateTrip />} />
           <Route path="/trips/:id" element={<TripDetails />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPost />} />
