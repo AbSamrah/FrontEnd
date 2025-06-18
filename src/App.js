@@ -21,6 +21,8 @@ import CarBookings from "./components/carbooking";
 import PaymentSuccess from "./components/PaymentSuccess";
 import PaymentCancel from "./components/PaymentCancel";
 import EditCarBooking from "./components/editcarbooking"; // 1. Import the new component
+import AddTrip from "./components/addTrip";
+import UpdateTrip from "./components/updateTrip";
 
 class App extends Component {
   state = {};
