@@ -16,10 +16,11 @@ import UpdateCar from "./components/updatecar";
 import { jwtDecode } from "jwt-decode";
 import { Component } from "react";
 import Logout from "./components/logout";
-import RentCarForm from "./components/rentcarform";
-//import PaymentPage from "./components/payment";
+import RentCarFormWrapper from "./components/rentcarform";
+import CarBookings from "./components/carbooking";
 import PaymentSuccess from "./components/PaymentSuccess";
 import PaymentCancel from "./components/PaymentCancel";
+import EditCarBooking from "./components/editcarbooking"; // 1. Import the new component
 
 class App extends Component {
   state = {};
@@ -47,9 +48,15 @@ class App extends Component {
           <Route path="/cars" element={<Cars />} />
           <Route path="/cars/add" element={<AddCar />} />
           <Route path="/cars/update/:id" element={<UpdateCar />} />
-          <Route path="/cars/rent/:id" element={<RentCarForm />} />
+          <Route path="/cars/rent/:id" element={<RentCarFormWrapper />} />
+
+          <Route path="/car-bookings" element={<CarBookings />} />
+          {/* 2. Add the new route for editing car bookings */}
+          <Route path="/car-bookings/edit/:id" element={<EditCarBooking />} />
+
           <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/payment-cancel" element={<PaymentCancel />} />
+
           <Route path="/trips" element={<Trips />} />
           <Route path="/trips/:id" element={<TripDetails />} />
           <Route path="/blog" element={<Blog />} />

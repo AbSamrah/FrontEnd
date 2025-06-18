@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
 import apiClient from "../helper/apiclient";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import "../style/cars.css";
+
+// Helper function to format a Date object into the string format required by datetime-local input
+const formatDateForInput = (date) => {
+  const pad = (num) => num.toString().padStart(2, "0");
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
 
 const Cars = () => {
   const [allCars, setAllCars] = useState([]);
@@ -10,8 +21,17 @@ const Cars = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const navigate = useNavigate();
+
+  // --- NEW: Initialize dates with default values ---
+  const initialStartDate = new Date();
+  const initialEndDate = new Date();
+  initialEndDate.setDate(initialEndDate.getDate() + 2); // Set end date to 2 days from now
+
+  const [startDate, setStartDate] = useState(
+    formatDateForInput(initialStartDate)
+  );
+  const [endDate, setEndDate] = useState(formatDateForInput(initialEndDate));
 
   const [filters, setFilters] = useState({
     model: "",
@@ -42,19 +62,25 @@ const Cars = () => {
         ...filters,
       };
 
+      // Clean up empty filter parameters before sending
       Object.keys(params).forEach((key) => {
         if (params[key] === "" || params[key] === null) {
           delete params[key];
         }
       });
 
-      if (startDate && endDate) {
+      // Add dates for availability search if they exist (for non-admins)
+      if (startDate && endDate && userRole !== "Admin") {
         params.startDateTime = new Date(startDate).toISOString();
         params.endDateTime = new Date(endDate).toISOString();
       }
 
       try {
-        const endpoint = startDate && endDate ? "/cars/available" : "/cars";
+        // Non-admins search available cars, Admins see all cars
+        const endpoint =
+          startDate && endDate && userRole !== "Admin" ?
+            "/cars/available"
+          : "/cars";
         const response = await apiClient.get(endpoint, { params });
 
         setAllCars(response.data.cars);
@@ -72,12 +98,11 @@ const Cars = () => {
         setLoading(false);
       }
     },
-    [startDate, endDate, filters]
+    [startDate, endDate, filters, userRole]
   );
 
+  // This useEffect runs once to get initial data like user role and categories
   useEffect(() => {
-    fetchCars(1);
-
     try {
       const jwt = localStorage.getItem("token");
       if (jwt) {
@@ -99,7 +124,15 @@ const Cars = () => {
       }
     };
     fetchCategories();
-  }, [fetchCars]);
+  }, []);
+
+  // This useEffect runs whenever fetchCars changes, ensuring cars are loaded on mount and on filter changes.
+  useEffect(() => {
+    // We only fetch if userRole has been determined, to avoid wrong API calls on initial render
+    if (userRole !== undefined) {
+      fetchCars(1);
+    }
+  }, [fetchCars, userRole]);
 
   const handleApplyFilters = (e) => {
     e.preventDefault();
@@ -113,6 +146,15 @@ const Cars = () => {
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleStartDateChange = (e) => {
+    const newStartDate = e.target.value;
+    setStartDate(newStartDate);
+    // If the new start date is after the current end date, update the end date
+    if (new Date(newStartDate) >= new Date(endDate)) {
+      setEndDate(newStartDate);
+    }
   };
 
   const getCategoryName = (categoryId) => {
@@ -136,17 +178,19 @@ const Cars = () => {
       className="car-card bg-white rounded-xl shadow-lg overflow-hidden flex flex-col">
       <div className="relative">
         <img
-          src={
-            `http://localhost:5117${car.image}` ||
-            "https://placehold.co/600x400/e2e8f0/4a5568?text=No+Image"
-          }
+          src={`http://localhost:5117${car.image}`}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src =
+              "https://placehold.co/600x400/e2e8f0/4a5568?text=Image+Not+Found";
+          }}
           className="w-full h-56 object-cover"
           alt={car.model}
         />
       </div>
       <div className="p-6 flex-grow flex flex-col">
         <h2 className="text-xl font-bold text-gray-900">{car.model}</h2>
-        <div className="flex-grow flex items-center text-sm text-gray-500 mt-2 space-x-4">
+        <div className="flex-grow flex flex-wrap items-center text-sm text-gray-500 mt-2 gap-x-4 gap-y-1">
           <span>
             <i className="fas fa-user-friends mr-1"></i> {car.seats} Seats
           </span>
@@ -182,7 +226,10 @@ const Cars = () => {
           : <Link
               to={`/cars/rent/${car.id}`}
               state={{ startDate, endDate }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+              className={`bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors ${!startDate || !endDate ? "opacity-50 cursor-not-allowed" : ""}`}
+              onClick={(e) => {
+                if (!startDate || !endDate) e.preventDefault();
+              }}>
               Rent Now
             </Link>
           }
@@ -228,7 +275,7 @@ const Cars = () => {
                     id="startDate"
                     name="startDate"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={handleStartDateChange}
                     className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md"
                   />
                 </div>
@@ -244,6 +291,7 @@ const Cars = () => {
                     name="endDate"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
+                    min={startDate}
                     className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md"
                   />
                 </div>
@@ -422,23 +470,25 @@ const Cars = () => {
               </div>
             }
 
-            <div className="mt-12 flex justify-center items-center">
-              <button
-                onClick={() => fetchCars(pagination.currentPage - 1)}
-                disabled={!pagination.hasPrevious || loading}
-                className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50">
-                Previous
-              </button>
-              <span className="px-4 py-2 mx-1">
-                Page {pagination.currentPage} of {pagination.totalPages}
-              </span>
-              <button
-                onClick={() => fetchCars(pagination.currentPage + 1)}
-                disabled={!pagination.hasNext || loading}
-                className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50">
-                Next
-              </button>
-            </div>
+            {pagination.totalPages > 1 && (
+              <div className="mt-12 flex justify-center items-center">
+                <button
+                  onClick={() => fetchCars(pagination.currentPage - 1)}
+                  disabled={!pagination.hasPrevious || loading}
+                  className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50">
+                  Previous
+                </button>
+                <span className="px-4 py-2 mx-1">
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                </span>
+                <button
+                  onClick={() => fetchCars(pagination.currentPage + 1)}
+                  disabled={!pagination.hasNext || loading}
+                  className="px-4 py-2 mx-1 bg-white border rounded-md disabled:opacity-50">
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
