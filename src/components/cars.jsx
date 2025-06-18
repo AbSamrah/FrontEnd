@@ -118,8 +118,9 @@ const Cars = () => {
       <div className="relative">
         <img
           src={
-            `http://localhost:5117${car.image}` ||
-            "https://placehold.co/600x400/e2e8f0/4a5568?text=No+Image"
+            car.image ?
+              `http://localhost:5117${car.image}`
+            : "https://placehold.co/600x400/e2e8f0/4a5568?text=No+Image"
           }
           className="w-full h-56 object-cover"
           alt={car.model}
